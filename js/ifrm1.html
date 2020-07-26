@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang='en'>
+<body>
+<H1>IFRAME TEST</H1>
+
+<div id='commdiv' style="display: none;">
+<iframe id='ifrm' src='ifrm2.html'></iframe>
+</div>
+
+<input type='button' onClick='bt1()' value='BT1'>
+<script>
+function bt1() {
+  cwn.postMessage({type:'connect',a:'1',b:'2'}, '*')
+}
+</script>
+
+<script>
+var cwn = document.getElementById('ifrm').contentWindow
+function handleMessage(e) {
+  let dt = e.data
+  switch(dt.type) {
+    case 'init':
+      cwn.postMessage({type:'connect',a:'1',b:'2'}, '*')
+      break
+    default:
+      alert('unknown: ',JSON.stringify(dt))
+  }
+}
+window.addEventListener('message', handleMessage, false);
+</script>
+</body>
+</html>
+

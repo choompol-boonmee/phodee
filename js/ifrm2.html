@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang='en'>
+<body>
+<div id='msg'></div>
+</body>
+<script>
+var mwn = window.parent
+window.addEventListener('message',handleMessage, false)
+mwn.postMessage({type:'init',a:'1',b:'2'}, '*')
+function handleMessage(e) {
+  let dt = e.data
+  switch(dt.type) {
+    case 'start':
+      alert('START')
+      break
+    default:
+      alert('child unknown type',dt)
+  }
+}
+</script>
+</html>
+

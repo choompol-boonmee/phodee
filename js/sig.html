@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<script src="/prj05/socket.io/socket.io.js"></script>
+</head>
+<body>
+<div id='msg'></div>
+</body>
+<script>
+var mwn = window.parent
+_Z('start signaling')
+window.addEventListener('message',handleMessage, false)
+mwn.postMessage({type:'init',a:'1',b:'2'}, '*')
+var sk
+
+var connecting = false
+
+var restart_cnt = 0
+var watch_handle = null
+const RESTART_TIMEOUT = 900
+
+function sig_start() {
+  sk = io.connect('https://edipa.org/', { path: '/prj05/socket.io'});
+  sk.on('connect', function() { 
+    mwn.postMessage({type:'sig_connect'}, "*")
+  }); 
+  sk.on('servers', function(servers) {
+    mwn.postMessage({type:'sig_servers',servers:servers}, "*")
+  }); 
+  sk.on('newappid', function(apps) {
+    mwn.postMessage({type:'sig_newappid',apps:apps}, "*")
+  }); 
+  sk.on('cand2', function(cand) {
+    mwn.postMessage({type:'sig_cand2',cand:cand}, "*")
+  }); 
+  sk.on('joined', function(desc) {
+    mwn.postMessage({type:'sig_joined',desc:desc}, "*")
+  }); 
+}
+
+var msg
+function _Z(txt) {
+  if(msg===undefined) {
+    msg = document.querySelector("#msg")
+  }
+  msg.innerHTML = msg.innerHTML+txt+'<br>'
+}
+
+function watch_restart() {
+  if(connecting) {
+    restart_cnt++
+    _Z('WATCH '+restart_cnt)
+    sig_start()
+    watch_handle = setTimeout(watch_restart, restart_cnt*RESTART_TIMEOUT)
+  }
+}
+
+function handleMessage(e) {
+  let dt = e.data
+  switch(dt.type) {
+    case 'start':
+      connecting = true
+      sig_start()
+      watch_handle = setTimeout(watch_restart, RESTART_TIMEOUT)
+      break
+    case 'restart':
+      if(watch_handle!==null) {
+        clearTimeout(watch_handle)
+      }
+      watch_handle = null
+      //sk.disconnect()
+      connecting = true
+      sig_start()
+      break
+    case 'send':
+      if(dt.sig==='appidreq') {
+        if(navigator) {
+          if(navigator.userAgent) {
+            dt = {...dt,userAgent: navigator.userAgent}
+          }
+/*
+          if(navigator.appCodeName) {
+            dt = {...dt, appCodeName: navigator.appCodeName}
+          }
+          if(navigator.appName) {
+            dt = {...dt, appName: navigator.appName}
+          }
+          if(navigator.appVersion) {
+            dt = {...dt, appVersion: navigator.appVersion}
+          }
+          if(navigator.cookieEnabled) {
+            dt = {...dt, cookieEnabled: navigator.cookieEnabled}
+          }
+          if(navigator.vendor) {
+            dt = {...dt, vendor: navigator.vendor}
+          }
+          if(navigator.cpuClass) {
+            dt = {...dt, cpuClass: navigator.cpuClass}
+          }
+          if(navigator.oscpu) {
+            dt = {...dt, oscpu: navigator.oscpu}
+          }
+*/
+        }
+      }
+      sk.emit(dt.sig, {...dt, skid: sk.id})
+      break
+    case 'close':
+      if(watch_handle!==null) {
+        clearTimeout(watch_handle)
+      }
+      watch_handle = null
+      connecting = false
+      _Z('CLOSE '+JSON.stringify(dt))
+      sk.disconnect()
+      break
+    default:
+      //alert('child unknown type')
+  }
+}
+</script>
+</html>
+
